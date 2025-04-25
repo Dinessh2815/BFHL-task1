@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import SearchBar from "@/app/components/SearchBar";
 import FilterPanel from "@/app/components/FilterPanel";
@@ -11,7 +11,8 @@ import {
   extractNumericExperience,
 } from "@/app/services/doctorService";
 
-export default function Home() {
+// Client Component that uses searchParams
+function HomeContent() {
   const searchParams = useSearchParams();
 
   // Store all doctor data fetched from API
@@ -58,15 +59,8 @@ export default function Home() {
     }
   }, [searchParams, allDoctors]);
 
-  // Apply all filters client-side whenever filters change
-  useEffect(() => {
-    if (allDoctors.length > 0) {
-      applyClientSideFilters();
-    }
-  }, [filters, searchTerm, allDoctors]);
-
   // Apply all filters on the client side
-  const applyClientSideFilters = () => {
+  const applyClientSideFilters = useCallback(() => {
     // Start with all doctors
     let filtered = [...allDoctors];
 
@@ -113,7 +107,14 @@ export default function Home() {
 
     setFilteredDoctors(filtered);
     updateUrlParams();
-  };
+  }, [allDoctors, searchTerm, filters]);
+
+  // Apply all filters client-side whenever filters change
+  useEffect(() => {
+    if (allDoctors.length > 0) {
+      applyClientSideFilters();
+    }
+  }, [filters, searchTerm, allDoctors, applyClientSideFilters]);
 
   // Update URL query parameters
   const updateUrlParams = () => {
@@ -209,5 +210,14 @@ export default function Home() {
         </div>
       </main>
     </div>
+  );
+}
+
+// Main export wrapped with Suspense
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
